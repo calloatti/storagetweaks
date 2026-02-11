@@ -1,0 +1,143 @@
+﻿using HarmonyLib;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Linq;
+using System.IO;
+using UnityEngine;
+using Timberborn.Stockpiles;
+using Timberborn.BlueprintSystem;
+
+namespace StorageTweaks
+{
+    [HarmonyPatch("SpecService", "Load")]
+    public static class StorageCapacityCache
+    {
+        // --- CONFIGURATION ---
+        private static readonly bool EnableLogging = true;
+        // ---------------------
+
+        private static readonly Dictionary<string, CapacityRecord> _cache = new Dictionary<string, CapacityRecord>();
+
+        public struct CapacityRecord
+        {
+            public int Original;
+            public int Final;
+
+            public CapacityRecord(int original, int final)
+            {
+                Original = original;
+                Final = final;
+            }
+        }
+
+        [HarmonyPostfix]
+        public static void Postfix(object __instance)
+        {
+            BuildCache(__instance);
+        }
+
+        private static void BuildCache(object specServiceInstance)
+        {
+            _cache.Clear();
+            List<string> logLines = EnableLogging ? new List<string>() : null;
+
+            if (EnableLogging) logLines.Add($"--- [StorageTweaks] CACHE BUILD START: {DateTime.Now} ---");
+
+            try
+            {
+                var type = specServiceInstance.GetType();
+                var sourceService = type.GetField("_blueprintSourceService", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(specServiceInstance) as BlueprintSourceService;
+                var deserializer = type.GetField("_blueprintDeserializer", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(specServiceInstance) as BlueprintDeserializer;
+                var specDict = type.GetField("_cachedBlueprintsBySpecs", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(specServiceInstance) as IDictionary;
+
+                if (sourceService == null || deserializer == null || specDict == null) return;
+
+                foreach (DictionaryEntry entry in specDict)
+                {
+                    if (((Type)entry.Key) != typeof(StockpileSpec)) continue;
+
+                    var lazyList = entry.Value as IList;
+                    if (lazyList == null) continue;
+
+                    foreach (object lazyObj in lazyList)
+                    {
+                        var bpValue = lazyObj.GetType().GetProperty("Value")?.GetValue(lazyObj) as Blueprint;
+                        if (bpValue == null) continue;
+
+                        int finalCap = bpValue.GetSpec<StockpileSpec>()?.MaxCapacity ?? -1;
+                        int originalCap = FetchOriginalCapacity(sourceService, deserializer, bpValue);
+
+                        _cache[bpValue.Name] = new CapacityRecord(originalCap, finalCap);
+
+                        if (EnableLogging)
+                        {
+                            string status = (originalCap != -1 && finalCap != originalCap) ? "[MODIFIED]" : "[UNCHANGED]";
+                            logLines.Add($"{status} {bpValue.Name} | Original: {originalCap} | Final: {finalCap}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (EnableLogging) logLines.Add($"Error during cache build: {ex.Message}");
+            }
+
+            if (EnableLogging)
+            {
+                logLines.Add("--- [StorageTweaks] CACHE BUILD COMPLETE ---");
+                try
+                {
+                    string logPath = Path.Combine(Application.persistentDataPath, "storagetweaks.txt");
+                    File.WriteAllLines(logPath, logLines);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[StorageTweaks] Failed to write log: {ex.Message}");
+                }
+            }
+        }
+
+        private static int FetchOriginalCapacity(BlueprintSourceService sourceService, BlueprintDeserializer deserializer, Blueprint blueprint)
+        {
+            try
+            {
+                var bundle = sourceService.Get(blueprint);
+                if (bundle == null) return -1;
+
+                var jsonsProp = typeof(BlueprintFileBundle).GetProperty("Jsons");
+                var jsonsObj = jsonsProp?.GetValue(bundle);
+                var itemProp = jsonsObj?.GetType().GetProperty("Item");
+                string originalJson = itemProp?.GetValue(jsonsObj, new object[] { 0 }) as string;
+
+                if (string.IsNullOrEmpty(originalJson)) return -1;
+
+                var originalBundle = ReconstructBaseBundle(bundle, originalJson);
+                var originalBlueprint = deserializer.DeserializeUnsafe(originalBundle);
+                return originalBlueprint?.GetSpec<StockpileSpec>()?.MaxCapacity ?? -1;
+            }
+            catch { return -1; }
+        }
+
+        private static BlueprintFileBundle ReconstructBaseBundle(BlueprintFileBundle original, string json)
+        {
+            var immutableType = AccessTools.TypeByName("System.Collections.Immutable.ImmutableArray");
+            var createMethod = immutableType?.GetMethods().FirstOrDefault(m => m.Name == "Create" && m.IsGenericMethod && m.GetParameters().Length == 1)?.MakeGenericMethod(typeof(string));
+
+            if (createMethod == null) return null;
+
+            object jsons = createMethod.Invoke(null, new object[] { json });
+            object sources = createMethod.Invoke(null, new object[] { "BaseGame" });
+
+            var ctor = typeof(BlueprintFileBundle).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault();
+            return ctor?.Invoke(new object[] { original.Name, original.Path, jsons, sources }) as BlueprintFileBundle;
+        }
+
+        public static CapacityRecord? GetCapacity(string blueprintName)
+        {
+            if (_cache.TryGetValue(blueprintName, out var record)) return record;
+            return null;
+        }
+    }
+}

@@ -1,0 +1,23 @@
+# StorageTweaks Configuration
+# Format: InternalName=Capacity # Default: Value
+
+LargeIndustrialPile.IronTeeth=500 # Default: 180
+LargePile.Folktails=200 # Default: 180
+LargeTank.Folktails=1000 # Default: 1200
+LargeTank.IronTeeth=1000 # Default: 1200
+LargeWarehouse.Folktails=1000 # Default: 1200
+LargeWarehouse.IronTeeth=1000 # Default: 1200
+MediumTank.Folktails=500 # Default: 300
+MediumTank.IronTeeth=500 # Default: 300
+MediumWarehouse.Folktails=200 # Default: 200
+MediumWarehouse.IronTeeth=200 # Default: 200
+SmallIndustrialPile.IronTeeth=50 # Default: 20
+SmallPile.Folktails=50 # Default: 20
+SmallTank.Folktails=100 # Default: 30
+SmallTank.IronTeeth=100 # Default: 30
+SmallWarehouse.Folktails=50 # Default: 30
+SmallWarehouse.IronTeeth=50 # Default: 30
+UndergroundPile.Folktails=1000 # Default: 1000
+ReservePile=160 # Default: 160
+ReserveTank=300 # Default: 300
+ReserveWarehouse=200 # Default: 200
