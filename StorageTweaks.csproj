@@ -7,7 +7,7 @@
     <ProjectGuid>{B14BBE23-0A9F-4C86-A2EC-A8D094247681}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StorageTweaks</RootNamespace>
+    <RootNamespace>Calloatti.StorageTweaks</RootNamespace>
     <AssemblyName>StorageTweaks</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -32,10 +32,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="OriginalCapacityFetcher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StorageCapacityCache.cs" />
     <Compile Include="StockpileGoodPileVisualizerPatches.cs" />
     <Compile Include="StorageTweaksStartup.cs" />
+    <Compile Include="VolumeCalculator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -56,6 +58,10 @@
     </Reference>
     <Reference Include="ModSettings.ModManager">
       <HintPath>references\ModSettings.ModManager.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Timberborn\Timberborn_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable, Version=9.0.0.11, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

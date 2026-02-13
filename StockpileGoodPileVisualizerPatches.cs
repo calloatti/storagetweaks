@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System;
 
-namespace StorageTweaks
+namespace Calloatti.StorageTweaks
 {
     public static class VisualizerCache
     {
@@ -50,11 +50,20 @@ namespace StorageTweaks
         [HarmonyPrefix]
         public static bool UpdateAmountPrefix(MonoBehaviour __instance, ref int amountInStock)
         {
-            // Only adjust the amount if scaling is enabled
+            // High-performance check: Verify the instance exists and hasn't been destroyed.
+            // The !__instance check is the Unity-specific way to catch 'fake-null' objects
+            // left behind by removed mods.
+            if (__instance == null || !__instance)
+            {
+                return true;
+            }
+
+            // Direct dictionary lookup is O(1) and very fast.
             if (EnableVisualScaling && VisualizerCache.Ratios.TryGetValue(__instance.GetInstanceID(), out float ratio))
             {
                 amountInStock = Mathf.CeilToInt(amountInStock * ratio);
             }
+
             return true;
         }
 

@@ -2,7 +2,7 @@
 using Timberborn.ModManagerScene;
 using UnityEngine;
 
-namespace StorageTweaks
+namespace Calloatti.StorageTweaks
 {
     public class StorageTweaksStartup : IModStarter
     {
